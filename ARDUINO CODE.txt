@@ -1,0 +1,57 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+
+const char* ssid = "YOUR_WIFI_NAME";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+ESP8266WebServer server(80);
+
+#define LDR A0
+#define RELAY D1
+
+int threshold = 500;
+
+void handleRoot() {
+  int lightValue = analogRead(LDR);
+  String html = "<h1>Smart Road Light System</h1>";
+  html += "<p>Light Intensity: " + String(lightValue) + "</p>";
+  html += "<a href='/on'>Turn ON</a><br>";
+  html += "<a href='/off'>Turn OFF</a>";
+  server.send(200, "text/html", html);
+}
+
+void turnOn() {
+  digitalWrite(RELAY, LOW);
+  server.send(200, "text/html", "Light ON");
+}
+
+void turnOff() {
+  digitalWrite(RELAY, HIGH);
+  server.send(200, "text/html", "Light OFF");
+}
+
+void setup() {
+  pinMode(RELAY, OUTPUT);
+  digitalWrite(RELAY, HIGH);
+  Serial.begin(9600);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+  }
+
+  server.on("/", handleRoot);
+  server.on("/on", turnOn);
+  server.on("/off", turnOff);
+  server.begin();
+}
+
+void loop() {
+  int lightValue = analogRead(LDR);
+  if (lightValue < threshold) {
+    digitalWrite(RELAY, LOW);
+  } else {
+    digitalWrite(RELAY, HIGH);
+  }
+  server.handleClient();
+}
